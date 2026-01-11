@@ -8,7 +8,6 @@ import { AI_CONSTANTS, SYSTEM_PROMPT } from '../constants';
 @Injectable()
 export class GeminiProvider implements AiProvider {
   private readonly logger = new Logger(GeminiProvider.name);
-  readonly name = 'gemini';
   private client: GoogleGenerativeAI | null = null;
 
   constructor(private configService: ConfigService) {

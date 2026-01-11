@@ -7,7 +7,6 @@ import { AI_CONSTANTS, SYSTEM_PROMPT } from '../constants';
 @Injectable()
 export class OpenaiProvider implements AiProvider {
   private readonly logger = new Logger(OpenaiProvider.name);
-  readonly name = 'openai';
   private client: OpenAI | null = null;
 
   constructor(private configService: ConfigService) {

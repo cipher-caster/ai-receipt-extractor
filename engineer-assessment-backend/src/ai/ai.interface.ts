@@ -11,7 +11,6 @@ export interface ExtractedReceipt {
 }
 
 export interface AiProvider {
-  readonly name: string;
   extractReceipt(
     imageBuffer: Buffer,
     mimeType: string,
