@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
 import { AiService } from '../ai/ai.service';
@@ -20,43 +26,52 @@ export class ReceiptService {
     file: Express.Multer.File,
     provider?: string,
   ): Promise<ReceiptResponseDto> {
-    this.logger.log(`Processing receipt: ${file.originalname}`);
+    try {
+      this.logger.log(`Processing receipt: ${file.originalname}`);
 
-    // Upload to S3
-    const imageUrl = await this.storageService.uploadFile(file);
-    this.logger.log(`Uploaded to: ${imageUrl}`);
+      // Upload to S3
+      const imageUrl = await this.storageService.uploadFile(file);
+      this.logger.log(`Uploaded to: ${imageUrl}`);
 
-    const extractedData = await this.aiService.extractReceipt(
-      file.buffer,
-      file.mimetype,
-      provider,
-    );
+      const extractedData = await this.aiService.extractReceipt(
+        file.buffer,
+        file.mimetype,
+        provider,
+      );
 
-    const validatedData = this.validateExtractedData(extractedData);
+      const validatedData = this.validateExtractedData(extractedData);
 
-    const receipt = await this.prisma.receipt.create({
-      data: {
-        imageUrl,
-        date: validatedData.date,
-        currency: validatedData.currency,
-        vendorName: validatedData.vendorName,
-        gst: validatedData.gst,
-        total: validatedData.total,
-        items: {
-          create: validatedData.items.map((item) => ({
-            name: item.name,
-            cost: item.cost,
-          })),
+      const receipt = await this.prisma.receipt.create({
+        data: {
+          imageUrl,
+          date: validatedData.date,
+          currency: validatedData.currency,
+          vendorName: validatedData.vendorName,
+          gst: validatedData.gst,
+          total: validatedData.total,
+          items: {
+            create: validatedData.items.map((item) => ({
+              name: item.name,
+              cost: item.cost,
+            })),
+          },
         },
-      },
-      include: {
-        items: true,
-      },
-    });
+        include: {
+          items: true,
+        },
+      });
 
-    this.logger.log(`Saved receipt with ID: ${receipt.id}`);
+      this.logger.log(`Saved receipt with ID: ${receipt.id}`);
+      return receipt as unknown as ReceiptResponseDto;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
 
-    return receipt as unknown as ReceiptResponseDto;
+      this.logger.error(
+        `Error processing receipt: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException('Failed to process receipt');
+    }
   }
 
   private validateExtractedData(data: unknown): ExtractedReceiptDto {
