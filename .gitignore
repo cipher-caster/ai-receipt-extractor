@@ -75,3 +75,5 @@ pids/
 *.sln
 *.sw?
 *.local
+
+/generated/prisma
