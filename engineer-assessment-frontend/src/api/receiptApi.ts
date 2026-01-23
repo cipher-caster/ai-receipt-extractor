@@ -14,6 +14,7 @@ export interface ReceiptResponse {
   items: ReceiptItem[];
   gst: number | null;
   total: number | null;
+  isValidSum: boolean;
   createdAt: string;
 }
 
@@ -36,3 +37,10 @@ export async function extractReceipt(file: File, provider?: string): Promise<Rec
 
   return response.data;
 }
+
+export async function updatedReceipt(id: string, data: Partial<ReceiptResponse>): Promise<ReceiptResponse> {
+  const response = await api.put<ReceiptResponse>(`/receipts/${id}`, data);
+  return response.data;
+}
+
+

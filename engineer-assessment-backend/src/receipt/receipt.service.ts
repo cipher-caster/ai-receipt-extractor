@@ -55,6 +55,11 @@ export class ReceiptService {
               cost: item.cost,
             })),
           },
+          isSumValid: this.validateSum(
+            validatedData.total,
+            validatedData.gst,
+            validatedData.items,
+          ),
         },
         include: {
           items: true,
@@ -72,6 +77,16 @@ export class ReceiptService {
       );
       throw new InternalServerErrorException('Failed to process receipt');
     }
+  }
+
+  private validateSum(
+    total: number | null,
+    gst: number | null,
+    items: { cost: number }[],
+  ): boolean {
+    if (total === null) return false;
+    const sum = items.reduce((acc, item) => acc + item.cost, 0) + (gst || 0);
+    return sum === total;
   }
 
   private validateExtractedData(data: unknown): ExtractedReceiptDto {
@@ -102,5 +117,55 @@ export class ReceiptService {
     }
 
     return receipt as unknown as ReceiptResponseDto;
+  }
+
+  async updateReceiptData(
+    id: string,
+    data: Partial<ExtractedReceiptDto>,
+  ): Promise<ReceiptResponseDto> {
+    const receipt = await this.prisma.receipt.findUnique({
+      where: { id },
+      include: { items: true },
+    });
+
+    if (!receipt) {
+      throw new BadRequestException('Receipt not found');
+    }
+
+    const _isSumValid = this.validateSum(
+      data.total,
+      data.gst,
+      data.items || [],
+    );
+    if (!_isSumValid) {
+      throw new BadRequestException(
+        'The sum of items and GST does not match the total',
+      );
+    }
+
+    const updatedReceipt = await this.prisma.receipt.update({
+      where: { id },
+      data: {
+        date: data.date,
+        currency: data.currency,
+        vendorName: data.vendorName,
+        gst: data.gst,
+        total: data.total,
+        items: {
+          deleteMany: {},
+          createMany: {
+            data:
+              data.items?.map((item) => ({
+                name: item.name,
+                cost: item.cost,
+              })) || [],
+          },
+        },
+        isSumValid: _isSumValid,
+      },
+      include: { items: true },
+    });
+
+    return updatedReceipt as unknown as ReceiptResponseDto;
   }
 }

@@ -8,11 +8,12 @@ import {
   Param,
   ParseFilePipe,
   Post,
+  Put,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ReceiptResponseDto } from './dto/receipt.dto';
+import { ExtractedReceiptDto, ReceiptResponseDto } from './dto/receipt.dto';
 import { ReceiptService } from './receipt.service';
 
 @Controller('receipts')
@@ -47,5 +48,13 @@ export class ReceiptController {
       throw new BadRequestException('Receipt not found');
     }
     return receipt;
+  }
+
+  @Put(':id')
+  async updateReceipt(
+    @Param('id') id: string,
+    @Body() data: Partial<ExtractedReceiptDto>,
+  ): Promise<ReceiptResponseDto> {
+    return await this.receiptService.updateReceiptData(id, data);
   }
 }

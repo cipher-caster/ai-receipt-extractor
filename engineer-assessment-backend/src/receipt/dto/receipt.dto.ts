@@ -53,5 +53,6 @@ export class ReceiptResponseDto {
   items: ReceiptItemDto[];
   gst: number | null;
   total: number | null;
+  isSumValid: boolean;
   createdAt: Date;
 }

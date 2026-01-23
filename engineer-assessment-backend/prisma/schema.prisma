@@ -20,6 +20,7 @@ model Receipt {
   vendorName String?
   gst        Float?
   total      Float?
+  isSumValid Boolean     @default(false)
   items      ReceiptItem[]
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
