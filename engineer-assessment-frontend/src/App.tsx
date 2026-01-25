@@ -43,7 +43,7 @@ function App() {
       const result = await extractReceipt(selectedFile, selectedProvider);
       setReceipt(result);
       setState("results");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setError("We couldn't read this receipt. Try uploading a clearer photo?");
       setState("error");

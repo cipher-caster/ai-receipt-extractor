@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { AiProvider, ExtractedReceipt } from '../ai.interface';
-import { AI_CONSTANTS, SYSTEM_PROMPT } from '../constants';
+import { AI_CONSTANTS } from '../constants';
 
 @Injectable()
 export class OpenaiProvider implements AiProvider {
@@ -31,9 +31,13 @@ export class OpenaiProvider implements AiProvider {
       model: AI_CONSTANTS.OPENAI.MODEL,
       messages: [
         {
+          role: 'system',
+          content:
+            'Extract receipt information from the provided image. Use the supplied tool to structure your response.',
+        },
+        {
           role: 'user',
           content: [
-            { type: 'text', text: SYSTEM_PROMPT },
             {
               type: 'image_url',
               image_url: {
@@ -43,15 +47,69 @@ export class OpenaiProvider implements AiProvider {
           ],
         },
       ],
-      max_tokens: 500,
+      max_tokens: 1000,
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'extracted_receipt',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              vendorName: { type: ['string', 'null'] },
+              date: { type: ['string', 'null'] },
+              currency: {
+                type: ['string', 'null'],
+                description: '3-character ISO 4217 currency code (e.g. USD)',
+              },
+              total: { type: ['number', 'null'] },
+              gst: { type: ['number', 'null'] },
+              items: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string' },
+                    cost: { type: 'number' },
+                  },
+                  required: ['name', 'cost'],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: [
+              'vendorName',
+              'date',
+              'currency',
+              'total',
+              'gst',
+              'items',
+            ],
+            additionalProperties: false,
+          },
+        },
+      },
     });
 
-    const text = response.choices[0].message.content || '';
-    const cleanText = text.replace(/```json\n?|```/g, '').trim();
+    const choice = response.choices[0];
+
+    if (choice.message.refusal) {
+      this.logger.error(
+        `Model refused to extract receipt: ${choice.message.refusal}`,
+      );
+      throw new Error('AI model refused to extract receipt data');
+    }
+
+    const content = choice.message.content;
+    if (!content) {
+      throw new Error('Received empty response from AI model');
+    }
+
     try {
-      return JSON.parse(cleanText) as ExtractedReceipt;
-    } catch {
-      this.logger.error(`Failed to parse OpenAI response: ${text}`);
+      const result = JSON.parse(content);
+      return result as ExtractedReceipt;
+    } catch (e) {
+      this.logger.error(`Failed to parse extracted JSON: ${content}`, e);
       throw new Error('Failed to parse AI response as JSON');
     }
   }

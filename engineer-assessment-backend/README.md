@@ -42,11 +42,7 @@ From the project root:
 docker-compose up -d
 ```
 
-Create the S3 bucket:
-
-```bash
-aws --endpoint-url=http://localhost:4566 s3 mb s3://receipts
-```
+The S3 bucket (`receipts`) will be automatically created when the backend starts.
 
 ### 4. Initialize Database
 
