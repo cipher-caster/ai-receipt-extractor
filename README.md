@@ -6,6 +6,7 @@ A full-stack app that extracts data from receipt images using AI.
 
 ```
 ├── engineer-assessment-backend/   # NestJS backend API
+├── frontend-vue/                  # Vue 3 frontend (Vite + Tailwind)
 ├── engineer-assessment-frontend/  # React frontend (Vite + Tailwind)
 ├── sample-receipts/               # Sample receipt images for testing
 └── docker-compose.yml             # PostgreSQL database
@@ -30,6 +31,18 @@ npm run start:dev
 
 ### 3. Frontend setup
 
+You can use either the Vue or React client.
+
+**Vue Client**
+
+```bash
+cd frontend-vue
+npm install
+npm run dev
+```
+
+**React Client**
+
 ```bash
 cd engineer-assessment-frontend
 npm install
@@ -49,4 +62,4 @@ The frontend runs on `http://localhost:5173` and the backend on `http://localhos
 ## Tech Stack
 
 **Backend:** NestJS, Prisma, PostgreSQL, OpenAI/Gemini, AWS S3  
-**Frontend:** React 19, Vite, Tailwind CSS, Axios
+**Frontend:** Vue 3 / React 19, Vite, Tailwind CSS, Pinia
