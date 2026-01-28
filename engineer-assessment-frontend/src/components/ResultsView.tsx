@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { updatedReceipt, type ReceiptResponse } from "../api/receiptApi";
 import { formatCurrency } from "../utils/formatters";
@@ -21,6 +21,7 @@ interface UIState {
   editing: boolean;
   submitting: boolean;
   submitted: boolean;
+  error: string | null;
 }
 
 interface ResultsViewProps {
@@ -41,6 +42,7 @@ const initialUIState: UIState = {
   editing: false,
   submitting: false,
   submitted: false,
+  error: null,
 };
 
 export function ResultsView({ receipt, onReset }: ResultsViewProps) {
@@ -68,16 +70,16 @@ export function ResultsView({ receipt, onReset }: ResultsViewProps) {
     });
   };
 
+  // Live sum validation
   const parsedGst = Number(formData.gst) || 0;
   const parsedTotal = Number(formData.total) || 0;
   const itemsSum = formData.items.reduce((acc, it) => acc + (Number(it.cost) || 0), 0);
   const computedSum = itemsSum + parsedGst;
-
   const cents = (n: number) => Math.round(n * 100);
   const isSumValid = formData.total !== null && cents(computedSum) === cents(parsedTotal);
 
   const handleSubmit = async () => {
-    setUIState((prev) => ({ ...prev, submitting: true }));
+    setUIState((prev) => ({ ...prev, submitting: true, error: null }));
     try {
       await updatedReceipt(receipt.id, {
         vendorName: formData.vendorName,
@@ -86,13 +88,13 @@ export function ResultsView({ receipt, onReset }: ResultsViewProps) {
         gst: formData.gst,
         total: formData.total,
         items: formData.items.map((it) => ({ name: it.name, cost: it.cost ?? 0 })),
-        isValidSum: isSumValid,
       });
-      setUIState({ editing: false, submitting: false, submitted: true });
-    } catch (error) {
+      setUIState({ editing: false, submitting: false, submitted: true, error: null });
+    } catch (error: unknown) {
       console.error("Failed to update receipt:", error);
-      alert("Failed to update receipt. Please try again.");
-      setUIState((prev) => ({ ...prev, submitting: false }));
+      const err = error as { response?: { data?: { message?: string } } };
+      const message = err.response?.data?.message || "Failed to update receipt. Please try again.";
+      setUIState((prev) => ({ ...prev, submitting: false, error: message }));
     }
   };
 
@@ -130,6 +132,16 @@ export function ResultsView({ receipt, onReset }: ResultsViewProps) {
       </div>
 
       <div className="bg-white border-x border-b border-slate-200 rounded-b-xl p-6 shadow-sm">
+        {uiState.error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-800">{uiState.error}</p>
+            </div>
+            <button onClick={() => setUIState((prev) => ({ ...prev, error: null }))} className="text-red-500 hover:text-red-700">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
         <div className="flex flex-col md:flex-row gap-8">
           <div className="md:w-1/2">
             <h3 className="font-semibold text-slate-700 mb-3">Receipt Image</h3>
@@ -204,10 +216,10 @@ export function ResultsView({ receipt, onReset }: ResultsViewProps) {
               </div>
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span className={`${isSumValid ? "text-blue-600" : "text-red-600"}`}>
+                <span className={isSumValid ? "text-blue-600" : "text-red-600"}>
                   {uiState.editing ? (
                     <input
-                      className="w-32 text-right font-bold bg-white border rounded px-2 py-1"
+                      className={`w-32 text-right font-bold bg-white border rounded px-2 py-1 ${isSumValid ? "text-blue-600" : "text-red-600"}`}
                       type="number"
                       step="0.01"
                       value={formData.total ?? 0}
@@ -222,7 +234,7 @@ export function ResultsView({ receipt, onReset }: ResultsViewProps) {
                 <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-sm font-medium text-red-800 mb-1">Total doesn't match</p>
                   <p className="text-sm text-red-700">
-                    The items and tax add up to {formatCurrency(computedSum, receipt.currency)}, but the total shows {formatCurrency(formData.total, receipt.currency)}. Please review and correct the values.
+                    Items + tax = {formatCurrency(computedSum, receipt.currency)}, but total shows {formatCurrency(formData.total, receipt.currency)}.
                   </p>
                 </div>
               )}

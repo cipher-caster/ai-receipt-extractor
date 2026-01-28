@@ -15,7 +15,7 @@ export function SettingsButton({ selectedProvider, onProviderChange }: SettingsB
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`p-3 rounded-full shadow-lg border transition-all outline-none group relative ${
-          isOpen ? "bg-blue-600 border-blue-600 text-white rotate-90" : "bg-white/80 backdrop-blur-md border-slate-200 text-slate-600 hover:text-blue-600 hover:scale-105"
+          isOpen ? "bg-blue-600 border-blue-600 text-white" : "bg-white/80 backdrop-blur-md border-slate-200 text-slate-600 hover:text-blue-600 hover:scale-105"
         }`}
       >
         <Settings className="w-5 h-5" />

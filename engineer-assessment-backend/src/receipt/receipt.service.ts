@@ -139,7 +139,7 @@ export class ReceiptService {
     );
     if (!_isSumValid) {
       throw new BadRequestException(
-        'The sum of items and GST does not match the total',
+        'Cannot save: items + tax does not equal total. Please correct the values.',
       );
     }
 
